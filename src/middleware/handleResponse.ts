@@ -7,7 +7,8 @@ import { Response } from "express";
 
 // No endpoint 403
 type HandleResponse = {
-	error?: Error;
+	// rome-ignore lint/suspicious/noExplicitAny: <explanation>
+	error: any;
 	data?: Object;
 	msg?: string;
 	res: Response;
@@ -32,11 +33,9 @@ export const handleResponse = (handleResponse: HandleResponse) => {
 			.status(statusCode);
 	} else {
 		// Send a custom message depending on the error type
-		return res
-			.json({
-				msg: "Faliure",
-				error,
-			})
-			.status(statusCode);
+		return res.status(statusCode).json({
+			msg: "Faliure",
+			error,
+		});
 	}
 };

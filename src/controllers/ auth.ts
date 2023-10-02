@@ -18,7 +18,7 @@ const register = async (req: Request, res: Response) => {
 			productiveBaseInCharge = null,
 		} = req.body;
 		const { role } = req.query;
-		const hashedPassword = await hashString(password);
+		const hashedPassword: string = await hashString(password);
 
 		const newUser = new UserModel({
 			username,
@@ -28,6 +28,8 @@ const register = async (req: Request, res: Response) => {
 			surename,
 		});
 		if (role === Role.Specialist) {
+			if (!productiveBaseInCharge)
+				return res.json({ error: "Productive base requireda" });
 			//  TODO: fix this tipo error in types.ts
 			newUser.productiveBaseInCharge = new Types.ObjectId(
 				productiveBaseInCharge,

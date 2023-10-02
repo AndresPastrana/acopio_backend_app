@@ -20,7 +20,6 @@ const UserSchema = new Schema<User>({
 	firstname: {
 		type: String,
 		required: true,
-		unique: true,
 	},
 	secondname: {
 		type: String,
@@ -38,7 +37,6 @@ const UserSchema = new Schema<User>({
 		type: Schema.Types.ObjectId,
 		required: false,
 		ref: "ProductiveBase",
-		unique: true,
 	},
 });
 

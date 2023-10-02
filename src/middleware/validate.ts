@@ -9,11 +9,6 @@ export const validateRequest = (
 	const errors = validationResult(req).array();
 
 	return errors.length > 0
-		? handleResponse({
-				error: errors,
-				res,
-				statusCode: 404,
-				msg: "Faliure",
-		  })
+		? handleResponse({ error: errors, res, statusCode: 400, msg: "Faliure" })
 		: next();
 };
