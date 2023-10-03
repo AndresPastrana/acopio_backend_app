@@ -1,15 +1,16 @@
 import { Router } from "express";
 import { ProvinceController } from "../controllers/province.js";
-import { Role } from "../types.d.js";
-import { isValidToken, protectRouteByRole } from "./../middleware/index.js";
 
 export const router = Router();
 
-router.post(
-	"/",
-	[isValidToken, protectRouteByRole(Role.Specialist)],
-	ProvinceController.insertProvince,
-);
-router.get("/", ProvinceController.getProvinces);
+// Podemos usar este endpoint en caso de que queramos expander la aplicación a otras provincias del pais
+// POST: /province
+// router.post(
+// 	"/",
+// 	[isValidToken, protectRouteByRole([Role.Admin])],
+// 	ProvinceController.insertProvince,
+// );
 // router.delete("/", ProvinceController.deleteProvince);
 // router.put("/:id", ProvinceController.editProvince);
+
+router.get("/", ProvinceController.getProvinces);
