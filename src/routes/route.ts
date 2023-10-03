@@ -1,27 +1,37 @@
-import { NextFunction, Request, Response, Router } from "express";
+import { Router } from "express";
+import { body, check, param } from "express-validator";
+import { isValidObjectId, Types } from "mongoose";
 import { isValidToken, protectRouteByRole } from "../middleware/index.js";
+import { RouteModel } from "../models/index.js";
 import { Role } from "../types.d.js";
 import { RouteController } from "./../controllers/index.js";
+import { validateRequest } from "./../middleware/index.js";
 export const router = Router();
-// TODO:6 work here
+
 // router.post("/:blob", [], RouteController.insertManyRoutes);
 router.post(
 	"/",
 	[
 		isValidToken,
-		(req: Request, res: Response, next: NextFunction) =>
-			protectRouteByRole(req, res, next, Role.Admin),
+		protectRouteByRole([Role.Admin]),
+		body("name", "Invalid name")
+			.exists({ values: "null" })
+			.custom(async (value) => {
+				// const regEx = trimedLowerRegExp(value);
+				const query = RouteModel.find({ name: value });
+				const result = await query.exec();
+				if (result[0]) {
+					throw new Error("Duplicate data");
+				}
+			}),
+		validateRequest,
 	],
 	RouteController.insertRoute,
 );
 
 router.get(
 	"/",
-	[
-		isValidToken,
-		(req: Request, res: Response, next: NextFunction) =>
-			protectRouteByRole(req, res, next, Role.Admin),
-	],
+	[isValidToken, protectRouteByRole([Role.Admin])],
 	RouteController.getAllRoutes,
 );
 
@@ -29,8 +39,18 @@ router.get(
 	"/:id",
 	[
 		isValidToken,
-		(req: Request, res: Response, next: NextFunction) =>
-			protectRouteByRole(req, res, next, [Role.Admin, Role.Specialist]),
+		protectRouteByRole([Role.Admin]),
+		param("id", "Invalid route id")
+			.exists({ values: "null" })
+			.custom((value) => {
+				console.log(value);
+
+				if (!isValidObjectId(value)) {
+					throw new Error("Invalid route");
+				}
+			}),
+
+		validateRequest,
 	],
 	RouteController.getRouteById,
 );
@@ -39,8 +59,23 @@ router.put(
 	"/:id",
 	[
 		isValidToken,
-		(req: Request, res: Response, next: NextFunction) =>
-			protectRouteByRole(req, res, next, Role.Admin),
+		protectRouteByRole([Role.Admin]),
+		check("id")
+			.custom((id) => {
+				if (!isValidObjectId(id)) {
+					throw new Error("Invalid route");
+				}
+				return true;
+			})
+			.custom(async (id) => {
+				const query = RouteModel.findById(new Types.ObjectId(id));
+				const doc = await query.exec();
+				if (!doc) {
+					throw new Error("Invalid route");
+				}
+				return true;
+			}),
+		validateRequest,
 	],
 	RouteController.editRoute,
 );
@@ -49,8 +84,25 @@ router.delete(
 	"/:id",
 	[
 		isValidToken,
-		(req: Request, res: Response, next: NextFunction) =>
-			protectRouteByRole(req, res, next, Role.Admin),
+		protectRouteByRole([Role.Admin]),
+		param("id", "Invalid route id")
+			.exists({ values: "null" })
+			.custom((value) => {
+				if (!isValidObjectId(value)) {
+					throw new Error("Invalid route");
+				}
+				return true;
+			})
+			.custom(async (value) => {
+				// const regEx = trimedLowerRegExp(value);
+				const query = RouteModel.findById(new Types.ObjectId(value));
+				const result = await query.exec();
+				if (result) {
+					return true;
+				}
+				throw new Error("Duplicate data");
+			}),
+		validateRequest,
 	],
 	RouteController.deleteRoutes,
 );

@@ -9,7 +9,6 @@ export const isValidToken = (
 	next: NextFunction,
 ) => {
 	const { authorization = null } = req.headers;
-	console.log(req.headers);
 
 	if (!authorization || !authorization.includes("Bearer")) {
 		return handleResponse({
@@ -37,6 +36,6 @@ export const isValidToken = (
 		res,
 		statusCode: 401,
 		error: true,
-		msg: "Invalid token",
+		msg: "Bearer token is required",
 	});
 };
