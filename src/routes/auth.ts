@@ -4,25 +4,22 @@ import { isValidObjectId, Types } from "mongoose";
 import { Role } from "../types.d.js";
 import { AuthController } from "./../controllers/index.js";
 import { validateRequest } from "./../middleware/index.js";
-import { UserModel } from "./../models/index.js";
-
+import { ProductiveBaseModel, UserModel } from "./../models/index.js";
 export const router = Router();
 
 // Validate that the username and password comes
 router.post(
 	"/login",
 	[
-		body(["username", "password"]).exists({ values: "null" }).isString(),
+		body(["username", "password"], "Required fields missed")
+			.exists({ values: "null" })
+			.isString(),
 		validateRequest,
 	],
 	AuthController.login,
 );
 
 // TODO:
-// en el caso de que el role sea ADMIN, revisar que no exista mas ninguno en la tabla USER -->404
-// en el caso de que el role sea especialista :
-// - revisar que ningun especialista de la tabla usuario  tiene asignada las base Productiva con ese id
-// -Revisar que la base productiva existe
 router.post(
 	"/register",
 	[
@@ -60,6 +57,17 @@ router.post(
 				}
 			})
 			.optional({ values: "null" }),
+
+		body("productiveBaseInCharge")
+			.if((_value, { req }) => req.role === Role.Specialist)
+			.custom(async (value) => {
+				const query = ProductiveBaseModel.findById(new Types.ObjectId(value));
+				const result = await query.exec();
+				if (!result) {
+					throw new Error("Invalid productive base _id");
+				}
+			})
+			.optional(),
 		body(
 			["username", "firstname", "surename", "username", "password"],
 			"This field is required",

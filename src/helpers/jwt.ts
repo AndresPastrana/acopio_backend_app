@@ -16,8 +16,6 @@ export function createJWTAsync(payload: Payload) {
 		const SECRET_KEY = process.env.SECRET_KEY || "";
 		// Create and sign the token
 		sign(payload, SECRET_KEY, options, (error, token) => {
-			console.log("Aqui!!!!");
-
 			if (error) {
 				return reject(error);
 			}

@@ -8,7 +8,7 @@ import { Response } from "express";
 // No endpoint 403
 type HandleResponse = {
 	// rome-ignore lint/suspicious/noExplicitAny: <explanation>
-	error: any;
+	error?: any;
 	data?: Object;
 	msg?: string;
 	res: Response;

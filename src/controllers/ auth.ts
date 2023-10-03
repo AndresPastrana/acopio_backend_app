@@ -71,7 +71,7 @@ const login = async (req: Request, res: Response) => {
 		const user = result[0];
 
 		// TODO: Validate Wrong password
-		// const isValidPassword = await user.validatePassword(password);
+		const isValidPassword = await user.validatePassword(password);
 
 		// TODO: Generate token
 		console.log(user);
@@ -111,6 +111,7 @@ const getUser = async (req: Request, res: Response) => {
 		res,
 		data: result,
 		statusCode: 200,
+		error: false,
 	});
 };
 
