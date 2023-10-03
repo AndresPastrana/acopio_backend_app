@@ -24,17 +24,18 @@ export const handleResponse = (handleResponse: HandleResponse) => {
 		statusCode,
 	} = handleResponse;
 	const defaultMsg = error ? "Failure" : "Success";
+	const customMessage = msg ? msg : defaultMsg;
 	if (!error) {
 		return res
 			.json({
-				msg: msg ? msg : defaultMsg,
+				msg: customMessage,
 				data,
 			})
 			.status(statusCode);
 	} else {
 		// Send a custom message depending on the error type
 		return res.status(statusCode).json({
-			msg: "Faliure",
+			msg: customMessage,
 			error,
 		});
 	}

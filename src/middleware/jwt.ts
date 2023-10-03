@@ -9,6 +9,8 @@ export const isValidToken = (
 	next: NextFunction,
 ) => {
 	const { authorization = null } = req.headers;
+	console.log(req.headers);
+
 	if (!authorization || !authorization.includes("Bearer")) {
 		return handleResponse({
 			res,
@@ -19,12 +21,16 @@ export const isValidToken = (
 	}
 
 	// Verify token
-	const toVerify = authorization?.split("Bearer ")[0];
+	const toVerify = authorization.split("Bearer ")[1];
 	const key = process.env.SECRET_KEY || "";
-	const token = jwt.verify(toVerify, key);
-	if (token) {
-		req.user = token;
-		return next();
+	try {
+		const token = jwt.verify(toVerify, key);
+		if (token) {
+			req.user = token;
+			return next();
+		}
+	} catch (error) {
+		return handleResponse({ res, error, msg: "Invalid jwt", statusCode: 401 });
 	}
 
 	return handleResponse({

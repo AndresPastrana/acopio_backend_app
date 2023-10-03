@@ -3,11 +3,15 @@ import { body, query } from "express-validator";
 import { isValidObjectId, Types } from "mongoose";
 import { Role } from "../types.d.js";
 import { AuthController } from "./../controllers/index.js";
-import { validateRequest } from "./../middleware/index.js";
+import {
+	isValidToken,
+	protectRouteByRole,
+	validateRequest,
+} from "./../middleware/index.js";
 import { ProductiveBaseModel, UserModel } from "./../models/index.js";
 export const router = Router();
 
-// Validate that the username and password comes
+//Public route
 router.post(
 	"/login",
 	[
@@ -19,10 +23,11 @@ router.post(
 	AuthController.login,
 );
 
-// TODO:
 router.post(
 	"/register",
 	[
+		isValidToken,
+		protectRouteByRole([Role.Admin]),
 		query("role")
 			.exists({ values: "null" })
 			.isString()
@@ -93,10 +98,13 @@ router.post(
 	AuthController.register,
 );
 
+// Private route role=specialist
 // /auth/user?role=admin&id=etefv45fgdg
 router.get(
 	"/user",
 	[
+		isValidToken,
+		protectRouteByRole([Role.Admin]),
 		query(["role", "id"]).exists({ values: "null" }),
 		query("role").isIn([Role.Admin, Role.Specialist]),
 		query("id").custom((value) => isValidObjectId(value)),

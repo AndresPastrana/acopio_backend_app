@@ -1,13 +1,37 @@
 import { Router } from "express";
 import { ProductiveBaseController } from "../controllers/index.js";
+import { Role } from "../types.d.js";
+import { isValidToken, protectRouteByRole } from "./../middleware/index.js";
 export const router = Router();
 
-router.post("/", [], ProductiveBaseController.insertAProductivebase);
+// Private routes
+router.post(
+	"/",
+	[isValidToken, protectRouteByRole([Role.Admin])],
+	ProductiveBaseController.insertAProductivebase,
+);
 
-router.get("/", [], ProductiveBaseController.getAllProductiveBase);
+router.get(
+	"/",
+	[isValidToken, protectRouteByRole([Role.Admin])],
+	ProductiveBaseController.getAllProductiveBase,
+);
 
-router.get("/:id", [], ProductiveBaseController.getProductiveBaseById);
+// Get productive-base/368473chchx8746378x
+router.get(
+	"/:id",
+	[isValidToken, protectRouteByRole([Role.Admin, Role.Specialist])],
+	ProductiveBaseController.getProductiveBaseById,
+);
 
-router.put("/:id", [], ProductiveBaseController.editProductiveBaseById);
+router.put(
+	"/:id",
+	[isValidToken, protectRouteByRole([Role.Admin])],
+	ProductiveBaseController.editProductiveBaseById,
+);
 
-router.delete("/:id", ProductiveBaseController.deleteProductiveBaseById);
+router.delete(
+	"/:id",
+	[isValidToken, protectRouteByRole([Role.Admin])],
+	ProductiveBaseController.deleteProductiveBaseById,
+);
