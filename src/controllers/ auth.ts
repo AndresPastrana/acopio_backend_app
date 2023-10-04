@@ -73,22 +73,25 @@ const login = async (req: Request, res: Response) => {
 		// TODO: Validate Wrong password
 		const isValidPassword = await user.validatePassword(password);
 
-		// TODO: Generate token
-		console.log(user);
+		if (isValidPassword) {
+			// TODO: Generate token
+			const token = await createJWTAsync({
+				uid: user._id.toString(),
+				role: user.role,
+			});
 
-		const token = await createJWTAsync({
-			uid: user._id.toString(),
-			role: user.role,
-		});
-
-		console.log(token);
-
+			return handleResponse({
+				data: {
+					access_token: token,
+				},
+				statusCode: 200,
+				res,
+			});
+		}
 		return handleResponse({
-			data: {
-				access_token: token,
-			},
-			statusCode: 200,
 			res,
+			statusCode: 404,
+			msg: "Invalid username or password",
 		});
 	} catch (error) {
 		return res.json({ error });
