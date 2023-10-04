@@ -497,18 +497,53 @@ const tanks = [
 
 const getAllTanksWithDetails = async (req: Request, resp: Response) => {
 	try {
-		const query = TankModel.find({}).populate(["route", "state"]);
+		const query = TankModel.find({}).populate(["routes", "state"]);
 		const result = await query.exec();
 		return handleResponse({
 			data: result,
-			msg: "Success",
 			statusCode: 200,
 			res: resp,
 		});
 	} catch (error) {
-		const e = error as Error;
 		return handleResponse({
 			res: resp,
+			statusCode: 500,
+			error,
+		});
+	}
+};
+
+const getTankByIdWithDetails = async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		const tank = await TankModel.findById(id).populate(["routes", "state"]);
+		return handleResponse({ res, data: tank, statusCode: 200 });
+	} catch (error) {
+		return handleResponse({
+			res,
+			statusCode: 500,
+			error,
+		});
+	}
+};
+// Just an admin can insert a new tank
+// Verify that there is no tank with that name
+const insertATank = async (req: Request, res: Response) => {
+	try {
+		const data: Tank = req.body;
+		const newTank = new TankModel({ ...data });
+		const result = await newTank.save();
+		const tankWithDetails = await result.populate("routes");
+
+		return handleResponse({
+			data: { tank: tankWithDetails },
+			res,
+			statusCode: 201,
+		});
+	} catch (error) {
+		const e = error as Error;
+		return handleResponse({
+			res,
 			statusCode: 500,
 			msg: "Faliure",
 			error: e,
@@ -516,27 +551,33 @@ const getAllTanksWithDetails = async (req: Request, resp: Response) => {
 	}
 };
 
-const insertATank = async (req: Request, resp: Response) => {
+const udpateATank = async (req: Request, res: Response) => {
 	try {
-		const data: Tank = req.body;
-		const newTank = new TankModel({ ...data });
+		const id = new Types.ObjectId(req.params.id);
+		const data = req.body;
+
+		const query = TankModel.findByIdAndUpdate(id, { ...data }, { new: true });
+		const tankWithDetails = await query.populate("routes");
+
 		return handleResponse({
-			msg: "Succes",
-			data: newTank,
-			res: resp,
-			statusCode: 200,
+			data: { tank: tankWithDetails },
+			res,
+			statusCode: 201,
 		});
 	} catch (error) {
 		const e = error as Error;
 		return handleResponse({
-			res: resp,
+			res,
 			statusCode: 500,
 			msg: "Faliure",
 			error: e,
 		});
 	}
 };
+
 export const TanksController = {
 	getAllTanksWithDetails,
 	insertATank,
+	getTankByIdWithDetails,
+	udpateATank,
 };

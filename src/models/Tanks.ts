@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, ObjectId, Schema } from "mongoose";
 import { Tank } from "../types.js";
 
 const TanksSchema = new Schema<Tank>({
@@ -6,16 +6,21 @@ const TanksSchema = new Schema<Tank>({
 		type: String,
 		required: true,
 	},
-	capacity: {},
+	capacity: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
 	name: {
 		type: String,
 		required: true,
 		unique: true,
 	},
-	route: {
-		type: Schema.Types.ObjectId,
+	routes: {
+		type: [Schema.Types.ObjectId],
 		ref: "Route",
-		required: true,
+		required: false,
+		default: [],
 	},
 	state: {
 		type: Schema.Types.ObjectId,
@@ -23,5 +28,19 @@ const TanksSchema = new Schema<Tank>({
 		required: true,
 	},
 });
+
+TanksSchema.methods.existRoute = function (
+	routeToVerify: string,
+	currentDocID: ObjectId,
+): Boolean {
+	console.log(this.toObject());
+	//  Exclude the self doc for the search
+	if (this.toObject()._id.toString() === currentDocID.toString()) return false;
+
+	const arrayOfRoutes = this.toObject().routes.map((oid: ObjectId) =>
+		oid.toString(),
+	);
+	return arrayOfRoutes.includes(routeToVerify);
+};
 
 export const TankModel = model<Tank>("Tank", TanksSchema);

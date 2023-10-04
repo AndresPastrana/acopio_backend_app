@@ -66,9 +66,9 @@ export type Route = Commom & {};
 
 export type Tank = Commom &
 	Address & {
-		capacity: BigInt;
+		capacity: number;
 		state: Schema.Types.ObjectId;
-		route: Schema.Types.ObjectId;
+		routes: [Schema.Types.ObjectId];
 	};
 
 export type ProductiveBase = Commom &
