@@ -98,10 +98,15 @@ const login = async (req: Request, res: Response) => {
 	}
 };
 // /auth?role=admin&id=sdfsdfsfsdfsdfsdf
+// If id is not passed return al the role users
+
+//
 const getUser = async (req: Request, res: Response) => {
 	const { role, id } = req.query;
+	const filter =
+		id !== "all" ? { _id: new Types.ObjectId(id as string), role } : { role };
 
-	const query = UserModel.find({ _id: id, role });
+	const query = UserModel.find(filter);
 
 	// Si es especialista get the info the la base productiva
 	if (role === Role.Specialist) {
@@ -118,8 +123,74 @@ const getUser = async (req: Request, res: Response) => {
 	});
 };
 
+const edituser = async (req: Request, res: Response) => {
+	const { role, id } = req.query;
+
+	try {
+		if (role === Role.Specialist) {
+			const { _id = null, role = null, ...data } = req.body;
+			const hashedPassword = await hashString(data.password);
+
+			const updatedUser = await UserModel.findByIdAndUpdate(
+				new Types.ObjectId(id as string),
+				{
+					...data,
+					password: hashedPassword,
+				},
+				{ new: true },
+			);
+
+			return handleResponse({
+				res,
+				data: {
+					user: updatedUser,
+				},
+				statusCode: 201,
+			});
+		}
+		return handleResponse({
+			res,
+			statusCode: 400,
+			msg: "You dont have permission to edit this user",
+		});
+	} catch (error) {
+		return handleResponse({
+			res,
+			error,
+			statusCode: 500,
+		});
+	}
+};
+
+const deletetUser = async (req: Request, res: Response) => {
+	try {
+		const { role = "", id = "" } = req.query;
+		const filter = { role };
+		const query = UserModel.findByIdAndDelete(
+			new Types.ObjectId(id as string),
+			filter,
+		);
+		const result = await query.exec();
+		return handleResponse({
+			res,
+			statusCode: 200,
+			data: {
+				user: result,
+			},
+		});
+	} catch (error) {
+		return handleResponse({
+			res,
+			statusCode: 500,
+			error,
+		});
+	}
+};
+
 export const AuthController = {
 	register,
 	getUser,
 	login,
+	edituser,
+	deletetUser,
 };

@@ -11,7 +11,6 @@ import {
 import { ProductiveBaseModel, UserModel } from "./../models/index.js";
 export const router = Router();
 
-//Public route
 router.post(
 	"/login",
 	[
@@ -47,8 +46,6 @@ router.post(
 		body("productiveBaseInCharge", "Invalid productive base")
 			.if((_value, { req }) => req.query?.role === Role.Specialist || false)
 			.custom(async (value) => {
-				console.log("here");
-
 				const query = UserModel.find({
 					role: Role.Specialist,
 					productiveBaseInCharge: new Types.ObjectId(value),
@@ -98,17 +95,117 @@ router.post(
 	AuthController.register,
 );
 
-// Private route role=specialist
-// /auth/user?role=admin&id=etefv45fgdg
+//GET   /auth/user?role=specialistid&id=etefv45fgdg
+// GET /user?role=specialistid=all
 router.get(
 	"/user",
 	[
 		isValidToken,
 		protectRouteByRole([Role.Admin]),
 		query(["role", "id"]).exists({ values: "null" }),
-		query("role").isIn([Role.Admin, Role.Specialist]),
-		query("id").custom((value) => isValidObjectId(value)),
+		query("role", "Invalid role").isIn([Role.Specialist]),
+		query("id")
+			.if((value) => value !== "all")
+			.isMongoId()
+			.custom(async (id, { req }) => {
+				const users = await UserModel.find({
+					_id: new Types.ObjectId(id),
+					role: req.query?.role,
+				});
+				if (users[0]) {
+					return true;
+				}
+
+				throw new Error("Invalid user id");
+			}),
 		validateRequest,
 	],
 	AuthController.getUser,
+);
+
+// PUT /user?role=specialistid=765asd76f5sd76f
+router.put(
+	"/user",
+	[
+		isValidToken,
+		protectRouteByRole([Role.Admin]),
+		query("role", "Invalid role").isIn([Role.Specialist]),
+		query("id", "Invalid user id")
+			.isMongoId()
+			.custom(async (id) => {
+				const doc = await UserModel.findById(new Types.ObjectId(id));
+				if (doc) {
+					return true;
+				}
+				throw new Error("Invalid user id");
+			}),
+		body(
+			["username", "firstname", "secondname", "surename", "secondsurename"],
+			"This field should be a string",
+		)
+			.isString()
+			.optional(),
+		body("password").isString().isStrongPassword().optional(),
+		body("username", "This username is already taken")
+			.custom(async (username) => {
+				const doc = await UserModel.find({
+					username: new RegExp(username, "i"),
+				});
+
+				if (doc[0]) {
+					throw new Error("Invalid username");
+				}
+
+				return true;
+			})
+			.optional(),
+		body("productiveBaseInCharge", "Invalid base id")
+			.isMongoId()
+			.custom(async (productiveBaseInCharge, { req }) => {
+				const id = new Types.ObjectId(productiveBaseInCharge);
+
+				const existQuery = ProductiveBaseModel.findById(id);
+
+				const haveASpecialistQuery = UserModel.find({
+					productiveBaseInCharge: id,
+				});
+
+				const [r1, r2] = await Promise.all([
+					existQuery.exec(),
+					haveASpecialistQuery.exec(),
+				]);
+				const index = r2.findIndex(
+					(user) => user._id.toString() !== req.query?.id,
+				);
+
+				if (!r1 || index >= 0) {
+					throw new Error("Invalid productiveBaseInCharge");
+				}
+				return true;
+			})
+			.optional(),
+		validateRequest,
+	],
+	AuthController.edituser,
+);
+
+// PUT /user?role=specialistid=765asd76f5sd76f
+router.delete(
+	"/user",
+	[
+		isValidToken,
+		protectRouteByRole([Role.Admin]),
+		query("role", "Invalid role").isIn([Role.Specialist]),
+		query("id", "Invalid user id")
+			.isMongoId()
+			.custom(async (id) => {
+				const doc = await UserModel.findById(new Types.ObjectId(id));
+				if (doc) {
+					return true;
+				}
+				throw new Error("Invalid user id");
+			}),
+		validateRequest,
+	],
+	AuthController.deletetUser,
 );
