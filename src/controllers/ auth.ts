@@ -128,14 +128,19 @@ const edituser = async (req: Request, res: Response) => {
 
 	try {
 		if (role === Role.Specialist) {
-			const { _id = null, role = null, ...data } = req.body;
-			const hashedPassword = await hashString(data.password);
+			const { _id = null, role = null, password = null, ...data } = req.body;
+			const hashedPassword =
+				(password && (await hashString(password))) || password;
+			console.log(hashedPassword);
+
+			const newData = password
+				? { ...data, password: hashedPassword }
+				: { ...data };
 
 			const updatedUser = await UserModel.findByIdAndUpdate(
 				new Types.ObjectId(id as string),
 				{
-					...data,
-					password: hashedPassword,
+					...newData,
 				},
 				{ new: true },
 			);
