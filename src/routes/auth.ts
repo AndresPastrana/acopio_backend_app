@@ -27,10 +27,7 @@ router.post(
 	[
 		isValidToken,
 		protectRouteByRole([Role.Admin]),
-		query("role")
-			.exists({ values: "null" })
-			.isString()
-			.isIn([Role.Admin, Role.Specialist]),
+		query("role").exists({ values: "null" }).isString().isIn([Role.Specialist]),
 		query("role", "Inavalid role, the system alredy have an adnim")
 			.if((value) => Role.Admin === value)
 			.custom(async (value) => {

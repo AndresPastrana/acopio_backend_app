@@ -78,7 +78,7 @@ const getProductiveBaseById = async (req: Request, res: Response) => {
 // Check that  the the route and state  exist
 const editProductiveBaseById = async (req: Request, res: Response) => {
 	try {
-		const { _id = null, id = null, route, state, ...rest } = req.body;
+		const { _id = null, id = null, ...rest } = req.body;
 
 		const { id: stringId } = req.params;
 		const oid = new Types.ObjectId(stringId);
@@ -87,8 +87,6 @@ const editProductiveBaseById = async (req: Request, res: Response) => {
 			oid,
 			{
 				...rest,
-				route,
-				state,
 			},
 			{ new: true },
 		).populate(["route", "state"]);
