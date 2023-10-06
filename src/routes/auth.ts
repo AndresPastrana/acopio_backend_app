@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { body, query } from "express-validator";
-import { isValidObjectId, Types } from "mongoose";
+import { Types } from "mongoose";
 import { Role } from "../types.d.js";
 import { AuthController } from "./../controllers/index.js";
 import {
+	isValidDoc,
 	isValidToken,
 	protectRouteByRole,
 	validateRequest,
@@ -37,9 +38,6 @@ router.post(
 					throw new Error("System alredy have an adimn");
 				}
 			}),
-		body("productiveBaseInCharge", "Invalid productive base id")
-			.custom((id) => isValidObjectId(id))
-			.optional(),
 		body("productiveBaseInCharge", "Invalid productive base")
 			.if((_value, { req }) => req.query?.role === Role.Specialist || false)
 			.custom(async (value) => {
@@ -58,15 +56,11 @@ router.post(
 			.optional({ values: "null" }),
 
 		body("productiveBaseInCharge")
-			.if((_value, { req }) => req.role === Role.Specialist)
-			.custom(async (value) => {
-				const query = ProductiveBaseModel.findById(new Types.ObjectId(value));
-				const result = await query.exec();
-				if (!result) {
-					throw new Error("Invalid productive base _id");
-				}
+			.custom(async (productivebaseID) => {
+				await isValidDoc(productivebaseID, ProductiveBaseModel, false);
+				return true;
 			})
-			.optional(),
+			.optional({ values: "null" }),
 		body(
 			["username", "firstname", "surename", "username", "password"],
 			"This field is required",

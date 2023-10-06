@@ -82,7 +82,13 @@ export type MonthContract = {
 	cant: number;
 };
 
-export type Producer = Commom & {
+export type Producer = {
+	firstname: string;
+	secondname?: string;
+	surename: string;
+	second_surename?: string;
+	age: number;
+	phone_number: string;
 	productive_base: Schema.Types.ObjectId;
 	ci: string;
 	months_contracts?: Array<MonthContract>;

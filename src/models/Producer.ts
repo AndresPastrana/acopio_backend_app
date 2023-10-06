@@ -1,5 +1,6 @@
 import { model, Schema } from "mongoose";
 import { enumMonth, monthsContractsDefault } from "../const.js";
+import { validateCi } from "../helpers/index.js";
 import { MonthContract, Producer } from "../types.js";
 
 const MonthContractSchema = new Schema<MonthContract>({
@@ -22,21 +23,26 @@ const Producerchema = new Schema<Producer>({
 	ci: {
 		type: String,
 		maxlength: 11,
-		// validate: {
-		// 	validator: function (v: string) {
-		// 		return /\d{3}-\d{3}-\d{4}/.test(v);
-		// 	},
-		// 	message: (props) => `${props.value} not a valid ci!`,
-		// },
+		validate: {
+			validator: function (value: string) {
+				return validateCi(value);
+			},
+			message: "Invalid CI format. CI should match the format: YYYYMMDDXXXXX",
+		},
 	},
-	name: {
+	firstname: {
 		type: String,
-		maxlength: 80,
-		unique: true,
 		required: true,
-		lowercase: true,
-		minlength: 10,
-		trim: true,
+	},
+	secondname: {
+		type: String,
+		required: false,
+	},
+	surename: { type: String, required: true },
+	second_surename: { type: String, required: false },
+	age: {
+		type: Number,
+		required: true,
 	},
 	cant_animals: {
 		type: Number,

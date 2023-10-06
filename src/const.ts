@@ -66,8 +66,8 @@ export const Months = {
 	Diciembre: "diciembre",
 };
 
-export const enumMonth = Object.values(Months).map((s: string) =>
-	s.toLocaleLowerCase(),
+export const enumMonth = Object.values(Months).map(
+	(s: string) => s.charAt(0).toUpperCase() + s.slice(1),
 );
 const Provinces = {
 	AbraDeCaiguanab: "abra de caiguanab",

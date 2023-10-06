@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
+import { Types } from "mongoose";
 import { ProductiveBaseController } from "../controllers/index.js";
 import { Role } from "../types.d.js";
 import {
@@ -12,6 +13,7 @@ import {
 	ProductiveBaseModel,
 	RouteModel,
 	StateModel,
+	UserModel,
 } from "./../models/index.js";
 
 export const router = Router();
@@ -66,6 +68,21 @@ router.get(
 			await isValidDoc(productivebaseID, ProductiveBaseModel, false);
 			return true;
 		}),
+		param("id")
+			.if((productivebaseID, { req }) => {
+				const { role = null } = req.user;
+				return role === Role.Specialist;
+			})
+			.custom(async (productivebaseID, { req }) => {
+				const { uid = null } = req.user;
+				const userInfo = await UserModel.findById(new Types.ObjectId(uid));
+				if (userInfo?.productiveBaseInCharge.toString() === productivebaseID) {
+					return true;
+				}
+				throw new Error(
+					"The current loged in user cant access the info of this productive base",
+				);
+			}),
 		validateRequest,
 	],
 	ProductiveBaseController.getProductiveBaseById,
