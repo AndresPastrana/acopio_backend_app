@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body, check, param } from "express-validator";
-import { isValidObjectId, Types } from "mongoose";
+import { Types, isValidObjectId } from "mongoose";
 import { isValidToken, protectRouteByRole } from "../middleware/index.js";
 import { RouteModel } from "../models/index.js";
 import { Role } from "../types.d.js";
@@ -63,7 +63,7 @@ router.put(
 		check("id")
 			.custom((id) => {
 				if (!isValidObjectId(id)) {
-					throw new Error("Invalid route");
+					throw new Error("Invalid route id");
 				}
 				return true;
 			})
@@ -75,7 +75,10 @@ router.put(
 				}
 				return true;
 			}),
+		 body('name').exists({values:'falsy'}).isString().withMessage("Invalid name"),	
 		validateRequest,
+
+
 	],
 	RouteController.editRoute,
 );
@@ -100,7 +103,7 @@ router.delete(
 				if (result) {
 					return true;
 				}
-				throw new Error("Duplicate data");
+				throw new Error("Invalid route id");
 			}),
 		validateRequest,
 	],

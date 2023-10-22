@@ -1,19 +1,19 @@
 import { Request, Response } from "express";
+import { matchedData } from 'express-validator';
 import { Types } from "mongoose";
-import { Route } from "../types.js";
 import { handleResponse } from "./../middleware/index.js";
 import { RouteModel } from "./../models/index.js";
 const insertRoute = async (req: Request, res: Response) => {
 	try {
-		const route: Route = req.body;
-		const newRoute = new RouteModel({ ...route });
+		const data= matchedData(req)
+		
+		const newRoute = new RouteModel({...data});
 		await newRoute.save();
 		return handleResponse({
 			res,
 			statusCode: 201,
-			data: {
-				route: newRoute,
-			},
+			data:  newRoute,
+			
 		});
 	} catch (error) {
 		return handleResponse({
@@ -49,20 +49,31 @@ const getRouteById = (req: Request, res: Response) => {
 
 const editRoute = async (req: Request, res: Response) => {
 	try {
-		const { id = "" } = req.params;
-		const { name = "" } = req.body;
-		const _id = new Types.ObjectId(id);
-		const query = RouteModel.findByIdAndUpdate(_id, { name }, { new: true });
-		const result = await query.exec();
 
-		console.log("Controler");
+		const {id,...rest} = matchedData(req,{locations:['body','params']})
+        const oid = new Types.ObjectId(id);
+          console.log(id);
+		  console.log(rest);
+		  
+		  
+		const doc = await RouteModel.findOne({$and:[ {name: new RegExp(rest.name,'i')} , {_id:{$ne:oid}}]})
+
+		 if (doc) {
+			return handleResponse({
+				res,
+				statusCode:400,
+				error:"Duplicate data",
+				msg: "name must be unique"
+			})
+		 }
+		
+		const query = RouteModel.findByIdAndUpdate(oid, { ...rest}, { new: true });
+		const result = await query.exec();
 
 		return handleResponse({
 			res,
 			statusCode: 200,
-			data: {
-				route: result,
-			},
+			data:result,
 		});
 	} catch (error) {
 		return handleResponse({
@@ -75,14 +86,13 @@ const editRoute = async (req: Request, res: Response) => {
 
 const deleteRoutes = async (req: Request, res: Response) => {
 	try {
-		const { id } = req.params;
-		const result = await RouteModel.findByIdAndDelete(new Types.ObjectId(id));
+	    const {id} = matchedData(req,{locations:['params']})
+       const result = await RouteModel.findByIdAndDelete(new Types.ObjectId(id));
+
 		return handleResponse({
 			res,
 			statusCode: 200,
-			data: {
-				route: result,
-			},
+			data:result,
 		});
 	} catch (error) {
 		return handleResponse({
