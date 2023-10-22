@@ -1,4 +1,4 @@
-import { model, ObjectId, Schema } from "mongoose";
+import { Document, HydratedDocument, ObjectId, Schema, model } from "mongoose";
 import { Tank } from "../types.js";
 
 const TanksSchema = new Schema<Tank>({
@@ -27,7 +27,15 @@ const TanksSchema = new Schema<Tank>({
 		ref: "State",
 		required: true,
 	},
-});
+},
+{
+	methods: {
+		toJSON: function (this: HydratedDocument<Tank &Document>) {
+			const { __v, _id, ...rest } = this.toObject();
+			return { id: _id, ...rest };
+		},
+	},
+},);
 
 TanksSchema.methods.existRoute = function (
 	routeToVerify: string,

@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
-import { isValidObjectId, Types } from "mongoose";
+import { Types, isValidObjectId } from "mongoose";
 import { Role } from "../types.d.js";
 import { TanksController } from "./../controllers/index.js";
 import {
@@ -164,21 +164,8 @@ router.put(
 				}
 				throw new Error("Invalid tank id");
 			}),
-		body(["name", "address"], "Invali value").isString().optional(),
+		body(["name", "address"], "Invalid value").isString().optional(),
 		body("capacity", "Invalid value").isFloat().optional(),
-		body("name", "Name mustbe unique")
-			.custom(async (value) => {
-				const regEx = new RegExp(value, "i");
-				const query = TankModel.find({ name: regEx });
-
-				const result = await query.exec();
-
-				if (result[0]) {
-					throw new Error("Name must be unique");
-				}
-				return true;
-			})
-			.optional(),
 		body("state", "Inavlid mongo id")
 			.isMongoId()
 			.custom(async (value) => {

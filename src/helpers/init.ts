@@ -27,7 +27,7 @@ export function defineMiddlewares(app: Application) {
 	app.use(
 		cors({
 			origin: "*",
-			methods: ["POST", "GET"],
+			methods: ["POST", "GET","DELETE","PUT"],
 		}),
 	);
 

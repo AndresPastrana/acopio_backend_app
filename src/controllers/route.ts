@@ -30,9 +30,8 @@ const getAllRoutes = async (req: Request, res: Response) => {
 		const routes = await query.exec();
 		return handleResponse({
 			res,
-			data: {
-				routes,
-			},
+			data:routes
+		,
 			statusCode: 200,
 		});
 	} catch (error) {

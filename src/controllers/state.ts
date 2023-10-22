@@ -27,9 +27,7 @@ const getStatesByProvinceId = async (req: Request, res: Response) => {
 		return handleResponse({
 			res,
 			statusCode: 200,
-			data: {
-				states: results,
-			},
+			data: results,
 		});
 	} catch (error) {
 		return handleResponse({ error, statusCode: 500, res });

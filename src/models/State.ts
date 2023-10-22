@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { Document, HydratedDocument, model, Schema } from "mongoose";
 
 import { State } from "../types.js";
 const StateSchema = new Schema<State>({
@@ -12,6 +12,15 @@ const StateSchema = new Schema<State>({
 		ref: "Province",
 		required: true,
 	},
-});
+},
+{
+	methods: {
+		toJSON: function (this: HydratedDocument<State &Document>) {
+			const { __v, _id, ...rest } = this.toObject();
+			return { id: _id, ...rest };
+		},
+	},
+},
+);
 
 export const StateModel = model<State>("State", StateSchema);

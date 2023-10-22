@@ -20,14 +20,16 @@ const ProductiveBaseSchema = new Schema<ProductiveBase>({
 		required: true,
 		ref: "State",
 	},
+},{
+	methods: {
+		toJSON: function (this: HydratedDocument<ProductiveBase & Document>) {
+			const { __v, _id,...rest } = this.toObject();
+			return { id: _id, ...rest };
+		},
+	},
 });
 
-ProductiveBaseSchema.methods.toJSON = function (
-	this: HydratedDocument<ProductiveBase & Document>,
-) {
-	const { __v, ...rest } = this.toObject();
-	return rest;
-};
+
 
 export const ProductiveBaseModel = model<ProductiveBase>(
 	"ProductiveBase",
