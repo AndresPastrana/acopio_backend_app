@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { Document, HydratedDocument, model, Schema } from "mongoose";
 import { compareHash } from "../helpers/index.js";
 import { Role, User } from "../types.d.js";
 const UserSchema = new Schema<User>({
@@ -24,6 +24,7 @@ const UserSchema = new Schema<User>({
 	secondname: {
 		type: String,
 		required: false,
+		default: "",	
 	},
 	surename: {
 		type: String,
@@ -31,12 +32,21 @@ const UserSchema = new Schema<User>({
 	},
 	second_surename: {
 		type: String,
+		default: "",
 		required: false,
 	},
 	productiveBaseInCharge: {
 		type: Schema.Types.ObjectId,
 		required: false,
+		default: null,
 		ref: "ProductiveBase",
+	},
+},{
+	methods: {
+		toJSON: function (this: HydratedDocument<User &Document>) {
+			const { __v, _id,password, ...rest } = this.toObject();
+			return { id: _id, ...rest };
+		},
 	},
 });
 
@@ -46,9 +56,9 @@ UserSchema.methods.validatePassword = async function (input_password: string) {
 	return same;
 };
 
-UserSchema.methods.toJSON = function () {
-	const { __v, password, ...rest } = this.toObject();
-	return rest;
-};
+// UserSchema.methods.toJSON = function () {
+// 	const { __v, , ...rest } = this.toObject();
+// 	return rest;
+// };
 
 export const UserModel = model<User>("User", UserSchema);

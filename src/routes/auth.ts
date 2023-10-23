@@ -24,7 +24,7 @@ router.post(
 );
 
 router.post(
-	"/register",
+	"/user",
 	[
 		isValidToken,
 		protectRouteByRole([Role.Admin]),
