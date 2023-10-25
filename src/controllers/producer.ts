@@ -1,131 +1,196 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
 import { caluculateAge } from "../helpers/age.js";
 import { ProducerModel } from "../models/index.js";
 import { handleResponse } from "./../middleware/index.js";
 import { UserModel } from "./../models/index.js";
+import { matchedData } from "express-validator";
+import { Payload } from "../types.js";
+import { monthsContractsDefault } from "../const.js";
+import { mergeMonthContratcs } from "../helpers/index.js";
+import { Types } from "mongoose";
 
-const insertProducer = async (req: Request, res: Response) => {
-	try {
-		const {
-			months_contracts = null,
-			_id = null,
-			id = null,
-			productive_base = null,
-			...rest
-		} = req.body;
-		const age = caluculateAge(rest.ci);
+const insertProducer = async (
+  req: Request & {
+    user?: Payload;
+  },
+  res: Response
+) => {
+  try {
+    const {
+      ci,
+      firstname,
+      surename,
+      secondname = "",
+      second_surename = "",
+      cant_animals = 0,
+      months_contracts = monthsContractsDefault,
+    } = matchedData(req);
+    const age = caluculateAge(ci);
 
-		const newProducer = {
-			...rest,
-			productive_base: new Types.ObjectId(productive_base),
-			age,
-		};
+    // Check for a user
+    if (!req.user) {
+      return handleResponse({ res, statusCode: 401, error: "Unathorized" });
+    }
 
-		const producer = new ProducerModel(newProducer);
+    const newProducer = {
+      ci,
+      firstname,
+      secondname,
+      surename,
+      second_surename,
+      cant_animals,
+      productive_base: new Types.ObjectId(req.user.productiveBaseInCharge),
+      months_contracts,
+      age,
+    };
 
-		const result = await producer.save();
-		const populatedResult = await result.populate(["productive_base"]);
+    const producer = new ProducerModel(newProducer);
 
-		return handleResponse({
-			res,
-			msg: "Succces",
-			statusCode: 201,
-			data: {
-				producer,
-			},
-		});
-	} catch (error) {
-		return handleResponse({ res, error, statusCode: 500 });
-	}
+    const result = await producer.save();
+    const populatedResult = await result.populate(["productive_base"]);
+
+    return handleResponse({
+      res,
+      msg: "Succces",
+      statusCode: 201,
+      data: populatedResult,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return handleResponse({ res, error, statusCode: 500 });
+  }
 };
 
 const editProducer = async (req: Request, res: Response) => {
-	try {
-		const { ci = null, productive_base = null, age = null, ...rest } = req.body;
-		const _id = new Types.ObjectId(req.query?.id as string);
-		const query = ProducerModel.findByIdAndUpdate(
-			_id,
-			{ ...rest },
-			{ new: true },
-		);
-		const result = await query.exec();
-		return handleResponse({ res, data: { producer: result }, statusCode: 201 });
-	} catch (error) {
-		return handleResponse({ res, statusCode: 500, error });
-	}
+  try {
+    const {
+      id,
+      ci = null,
+      age = null,
+      productive_base = null,
+      months_contracts = null,
+      ...rest
+    } = matchedData(req, { locations: ["body", "params"] });
+
+    const doc = await ProducerModel.findById(id);
+
+    if (doc) {
+      if (ci) {
+        doc.age = caluculateAge(ci);
+      }
+
+      if (months_contracts) {
+        const mixedMonthsContracts = mergeMonthContratcs({
+          defaults: doc.months_contracts || monthsContractsDefault,
+          replacer: months_contracts,
+        });
+
+        doc.months_contracts = mixedMonthsContracts;
+      }
+
+      // Update age and ci
+      await doc.save();
+
+      // Update the rest of the props
+      const d = ProducerModel.findByIdAndUpdate(id, { ...rest }, { new: true });
+      const withPBDetails = await d.populate("productive_base");
+      return handleResponse({
+        res,
+        statusCode: 200,
+        data: withPBDetails,
+      });
+    }
+
+    //
+
+    const query = ProducerModel.findByIdAndUpdate(
+      id,
+      { ...rest },
+      { new: true }
+    );
+    const result = await query.exec();
+    return handleResponse({ res, data: result, statusCode: 201 });
+  } catch (error) {
+    return handleResponse({ res, statusCode: 500, error });
+  }
 };
 
-const getProducers = async (req: Request, res: Response) => {
-	try {
-		const { productiveBase = null, id = null } = req.query;
-		const filter =
-			id === "all"
-				? { productive_base: new Types.ObjectId(productiveBase as string) }
-				: {
-						productive_base: new Types.ObjectId(productiveBase as string),
-						_id: new Types.ObjectId(id as string),
-				  };
+const getProducers = async (
+  req: Request & {
+    user?: Payload;
+  },
+  res: Response
+) => {
+  try {
+    const { id = null } = matchedData(req, { locations: ["query"] });
+    if (!req.user) {
+      return handleResponse({ res, statusCode: 401, error: "Unathorized" });
+    }
 
-		const query = ProducerModel.find(filter);
+    const filter: { productive_base: Types.ObjectId; _id?: Types.ObjectId } = {
+      productive_base: new Types.ObjectId(req.user.productiveBaseInCharge),
+    };
 
-		const resutl = await query.exec();
+    if (id) {
+      filter._id = id;
+    }
 
-		return handleResponse({
-			res,
-			msg: "Succces",
-			statusCode: 200,
-			data: { producers: resutl },
-		});
-	} catch (error) {
-		return handleResponse({ res, error, statusCode: 500 });
-	}
+    const query = ProducerModel.find(filter);
+
+    const resutl = await query.exec();
+
+    return handleResponse({
+      res,
+      msg: "Succces",
+      statusCode: 200,
+      data: resutl,
+    });
+  } catch (error) {
+    return handleResponse({ res, error, statusCode: 500 });
+  }
 };
 
 // Borrar un productor de una base productiva
 // id base, id_productor, especialista permission
-const deleteProducer = async (req: Request, res: Response) => {
-	//Producer id
+const deleteProducer = async (
+  req: Request & {
+    user?: Payload;
+  },
+  res: Response
+) => {
+  //Producer id
 
-	try {
-		const producer_id = new Types.ObjectId(req.params.id);
-		const auth_user_id = new Types.ObjectId(req?.user.uid);
+  // Get the productive base of the loged user
+  try {
+    const { id = "" } = matchedData(req, { locations: ["params"] });
+    const producer = await ProducerModel.findOne({
+      _id: id,
+      productive_base: new Types.ObjectId(req.user?.productiveBaseInCharge),
+    });
 
-		const authUser = await UserModel.findById(auth_user_id);
-		const producerToDelete = await ProducerModel.findById(producer_id);
-
-		console.log("Auth user");
-		console.log(authUser);
-		console.log("producerToDelete");
-		console.log(producerToDelete);
-
-		if (
-			authUser?.productiveBaseInCharge.toString() ===
-			producerToDelete?.productive_base.toString()
-		) {
-			await ProducerModel.findByIdAndDelete(producer_id);
-			return handleResponse({
-				res,
-				data: {
-					producer: producerToDelete,
-				},
-				statusCode: 200,
-			});
-		}
-
-		return handleResponse({
-			res,
-			error: new Error(`No existe el productor ${producerToDelete?.firstname}`),
-			statusCode: 400,
-		});
-	} catch (error) {
-		return handleResponse({ res, statusCode: 500, error });
-	}
+    if (!producer) {
+      return handleResponse({
+        res,
+        statusCode: 404,
+        msg: "Producer not found",
+        error: "Bad Request",
+      });
+    }
+    const deleted = await producer.deleteOne({ new: true });
+    return handleResponse({
+      res,
+      data: deleted,
+      statusCode: 204,
+    });
+  } catch (error) {
+    return handleResponse({ res, statusCode: 500, error });
+  }
 };
 
 export const ProducerController = {
-	insertProducer,
-	getProducers,
-	deleteProducer,
-	editProducer,
+  insertProducer,
+  getProducers,
+  deleteProducer,
+  editProducer,
 };

@@ -5,7 +5,7 @@ import { createJWTAsync } from "../helpers/jwt.js";
 import { UserModel } from "../models/index.js";
 import { hashString } from "./../helpers/index.js";
 import { handleResponse } from "./../middleware/index.js";
-import { Role } from "./../types.d.js";
+import { Payload, Role } from "./../types.d.js";
 //  /auth?role=specialist
 const register = async (req: Request, res: Response) => {
   try {
@@ -78,11 +78,17 @@ const login = async (req: Request, res: Response) => {
 
     if (isValidPassword) {
       // TODO: Generate token
-      const token = await createJWTAsync({
+      const payload:Payload = {
         uid: user._id.toString(),
         role: user.role,
-      });
+      };
 
+      // si es un specialista agrero la base productiva a cargo al payload
+      if(user.role ===Role.Specialist){
+        payload.productiveBaseInCharge = user.productiveBaseInCharge.toString() ?? null
+      }
+      const token = await createJWTAsync(payload)
+      
       return handleResponse({
         data: {
           access_token: token,

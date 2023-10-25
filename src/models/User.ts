@@ -47,14 +47,14 @@ const UserSchema = new Schema<User>({
 			const { __v, _id,password, ...rest } = this.toObject();
 			return { id: _id, ...rest };
 		},
+		validatePassword: async function (input_password: string) {
+			const { password } = this.toObject();
+			const same = await compareHash(input_password, password);
+			return same;
+		}
 	},
 });
 
-UserSchema.methods.validatePassword = async function (input_password: string) {
-	const { password } = this.toObject();
-	const same = await compareHash(input_password, password);
-	return same;
-};
 
 // UserSchema.methods.toJSON = function () {
 // 	const { __v, , ...rest } = this.toObject();
