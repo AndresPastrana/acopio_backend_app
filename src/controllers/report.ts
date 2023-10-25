@@ -2,85 +2,107 @@ import { Request, Response } from "express";
 import { Types } from "mongoose";
 import { handleResponse } from "./../middleware/index.js";
 import { ProducerModel, ReportModel, UserModel } from "./../models/index.js";
+import { Payload } from "../types.js";
+import { matchedData } from "express-validator";
 
-const createReport = async (req: Request, res: Response) => {
-	try {
-		const uid = new Types.ObjectId(req?.user.uid as string);
-		const producer_id = new Types.ObjectId(req.body.producer);
+const createReport = async (
+  req: Request & {
+    user?: Payload;
+  },
+  res: Response
+) => {
+  try {
+    const { producer = null, ...rest } = matchedData(req);
+    // PB of the loged user
+    const pb = req?.user?.productiveBaseInCharge || null;
 
-		const authUser = await UserModel.findById(uid);
-		const producer = await ProducerModel.findById(producer_id);
+    if (!pb || !producer) {
+      return handleResponse({
+        res,
+        error: "Invalid req",
+        statusCode: 404,
+      });
+    }
 
-		// TODO chechk that producer.productive_base === authUser.productiveBaseInCharge
-		if (
-			producer?.productive_base.toString() ===
-			authUser?.productiveBaseInCharge.toString()
-		) {
-			const { dayli_collect = 0, type_milk = null } = req.body;
-			const report = new ReportModel({
-				producer: producer_id,
-				productive_base: authUser?.productiveBaseInCharge,
-				dayli_collect,
-				type_milk,
-			});
-			const newReport = await report.save();
-			return handleResponse({
-				data: { report: newReport },
-				msg: "Succes",
-				statusCode: 201,
-				res,
-			});
-		}
+    const pr = await ProducerModel.findOne({
+      _id: producer,
+      productive_base: new Types.ObjectId(pb), //Base Productiva del usuario auth
+    });
 
-		return handleResponse({
-			res,
-			statusCode: 401,
-			msg: "The current loged specialist can't generate a report for this porducer",
-		});
+    if (!pr) {
+      return handleResponse({
+        res,
+        error: "Producer not found in your productive base",
+        statusCode: 404,
+      });
+    }
 
-		// const result = await report.save();
-	} catch (error) {
-		const err = error as Error;
-		return handleResponse({
-			msg: "faliure",
-			statusCode: 404,
-			res,
-			error: err,
-		});
-	}
+    const report = await ReportModel.create({
+      ...rest,
+      producer,
+      productive_base: pb,
+    });
+
+    const reportWithDetails = await report.populate([
+      "productive_base",
+      "producer",
+    ]);
+
+    return handleResponse({
+      res,
+      data: reportWithDetails,
+      statusCode: 201,
+      msg: "New Report created successfully",
+    });
+  } catch (error) {
+    const err = error as Error;
+    return handleResponse({
+      msg: "faliure",
+      statusCode: 404,
+      res,
+      error: err,
+    });
+  }
 };
 
-const getAllReportsByProducer = async (req: Request, res: Response) => {
-	const { producer } = req.query;
+// TODO: FIX THIS AND OTHERS CONTROLLERS
+const getReportsByProductiveBase = async (
+  req: Request & {
+    user?: Payload;
+  },
+  res: Response
+) => {
+  try {
+    // Access the user's productive base from req.user
+    const productiveBase = req.user?.productiveBaseInCharge;
 
-	try {
-		const uid = new Types.ObjectId(req?.user.uid);
-		const producer_id = new Types.ObjectId(req.query.producer);
+    if (!productiveBase) {
+      return handleResponse({
+        res,
+        statusCode: 400,
+        error: "User's productive base not found",
+      });
+    }
+    const reports = await ReportModel.find({
+      productive_base: new Types.ObjectId(productiveBase),
+    });
+    return handleResponse({
+      res,
+      data: reports,
+      statusCode: 200,
+    });
+  } catch (error) {
+    const err = error as Error;
 
-		const authUser = await UserModel.findById(uid);
-		const producer = await ProducerModel.findById(producer_id);
-
-		console.log(producer);
-		console.log(authUser);
-
-		const producerReports = await ReportModel.find({
-			producer: producer_id,
-			productive_base: authUser?.productiveBaseInCharge,
-		});
-		return handleResponse({
-			res,
-			data: { reports: producerReports },
-			statusCode: 200,
-		});
-	} catch (error) {
-		return handleResponse({
-			statusCode: 500,
-			res,
-			error: err,
-		});
-	}
+    return handleResponse({
+      res,
+      statusCode: 500,
+      error: err.message,
+    });
+  }
 };
+
 export const ReportController = {
-	createReport,
-	getAllReportsByProducer,
+  createReport,
+  getReportsByProductiveBase,
 };

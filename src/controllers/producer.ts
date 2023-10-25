@@ -1,13 +1,17 @@
 import { Request, Response } from "express";
 import { caluculateAge } from "../helpers/age.js";
-import { ProducerModel } from "../models/index.js";
+import { ProducerModel, ReportModel } from "../models/index.js";
 import { handleResponse } from "./../middleware/index.js";
-import { UserModel } from "./../models/index.js";
 import { matchedData } from "express-validator";
-import { Payload } from "../types.js";
+import { Payload, Producer } from "../types.js";
 import { monthsContractsDefault } from "../const.js";
-import { mergeMonthContratcs } from "../helpers/index.js";
+import {
+  getStartAndEndDateForMonth,
+  mergeMonthContratcs,
+} from "../helpers/index.js";
 import { Types } from "mongoose";
+import { log } from "console";
+import { type } from "os";
 
 const insertProducer = async (
   req: Request & {
@@ -151,6 +155,121 @@ const getProducers = async (
   }
 };
 
+const getCumplidoresList = async (
+  req: Request & {
+    user?: Payload;
+  },
+  res: Response
+) => {
+  try {
+    // const cumplidores: Producer = [];
+    // const noCumpl: Producer = [];
+
+    // Target month
+    const { month } = matchedData(req, { locations: ["params"] });
+
+    // Get target productive base
+    const targetProductiveBase = req.user?.productiveBaseInCharge;
+
+    // Get the range of dates
+    const { startDate, endDate } = getStartAndEndDateForMonth(month);
+
+    const generatedReports = await ReportModel.find({
+      productive_base: new Types.ObjectId(targetProductiveBase),
+      createdAt: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    });
+
+    type MyObjectType = {
+      [producerId: string]: number;
+    };
+
+    const initValue: MyObjectType = {};
+
+    // Agrupar los reportes por trabajador
+    const reportsGroupByProducer = generatedReports.reduce(
+      (acm, currentValue) => {
+        const producerId = currentValue.producer.toString();
+        const { dayli_collect } = currentValue;
+
+        const castedDayliCollect = dayli_collect as number;
+
+        // Create a copy of the current producer's reports or an empty array
+        const producerCollect = acm[producerId] || 0;
+
+        //  Increas the producer coolect with the current value
+        const totalCollect = producerCollect + castedDayliCollect;
+
+        // Add the current report to the producer's reports
+        // producerReports.push({ id, dayli_collect, type_milk });
+
+        // Update the accumulator with the new producer reports
+        return { ...acm, [producerId]: totalCollect };
+      },
+      initValue
+    );
+
+    // Get all the months_contracts de esos trabajadores
+    const prodcuers = await ProducerModel.find({
+      _id: {
+        $in: Object.keys(reportsGroupByProducer).map(
+          (id) => new Types.ObjectId(id)
+        ),
+      },
+    }).select(["months_contracts"]);
+
+    // Obtener el total de trabajadores de la base
+    const totalProducers = await ProducerModel.find({
+      productive_base: targetProductiveBase,
+    }).count();
+
+    type ComplianceStatus = {
+      compliantWorkers: number;
+      nonCompliantWorkers: number;
+      totalProducers: number;
+    };
+    // Iterate over all the prdoducers
+    let data: ComplianceStatus = {
+      compliantWorkers: 0,
+      nonCompliantWorkers: 0,
+      totalProducers,
+    };
+
+    for (const producer of prodcuers) {
+      const { id, months_contracts } = producer;
+      if (!months_contracts) return;
+      // Iterate over his contracts to fnd the month
+      const index = months_contracts.findIndex(
+        (contract) => contract.month === month
+      );
+
+      if (reportsGroupByProducer[id] >= months_contracts[index].cant) {
+        // Es cumplidor
+        data.compliantWorkers += 1;
+      } else {
+        // No es cumplidor
+        data.nonCompliantWorkers += 1;
+      }
+    }
+
+    return handleResponse({
+      res,
+      data,
+      statusCode: 200,
+    });
+  } catch (error) {
+    const err = error as Error;
+    return handleResponse({
+      res,
+
+      statusCode: 500,
+      error: err,
+    });
+  }
+};
+
 // Borrar un productor de una base productiva
 // id base, id_productor, especialista permission
 const deleteProducer = async (
@@ -193,4 +312,5 @@ export const ProducerController = {
   getProducers,
   deleteProducer,
   editProducer,
+  getCumplidoresList,
 };

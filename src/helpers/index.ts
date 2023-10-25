@@ -7,3 +7,4 @@ export {
   mergeMonthContratcs,
   validateNoDuplicateMonths,
 } from "./monthContracts.js";
+export { getStartAndEndDateForMonth } from "./getDateRangeByMonth.js";

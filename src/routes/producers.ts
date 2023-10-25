@@ -158,3 +158,12 @@ router.delete(
   [...authvalidations, ...idParamValidations, validateRequest],
   ProducerController.deleteProducer
 );
+
+router.get(
+  "/cumplidores/:month",
+  [
+    ...authvalidations,
+    param("month").isIn(Object.values(Months)).withMessage("Invalid Month"),
+  ],
+  ProducerController.getCumplidoresList
+);
