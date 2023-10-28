@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { Document, HydratedDocument, model, Schema } from "mongoose";
 import { MilkType, Report } from "../types.d.js";
 
 const ReportSchema = new Schema<Report>(
@@ -26,6 +26,13 @@ const ReportSchema = new Schema<Report>(
   },
   {
     timestamps: true,
+
+    methods: {
+      toJSON: function (this: HydratedDocument<Report & Document>) {
+        const { __v, _id, ...rest } = this.toObject();
+        return { id: _id, ...rest };
+      },
+    },
   }
 );
 

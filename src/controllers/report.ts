@@ -83,9 +83,12 @@ const getReportsByProductiveBase = async (
         error: "User's productive base not found",
       });
     }
-    const reports = await ReportModel.find({
+    const query = ReportModel.find({
       productive_base: new Types.ObjectId(productiveBase),
-    });
+    }).populate("producer", ["firstname", "surename", "cant_animals", "ci"]);
+
+    const reports = await query.exec();
+
     return handleResponse({
       res,
       data: reports,
