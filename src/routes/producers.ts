@@ -17,6 +17,7 @@ import { ProducerController } from "./../controllers/index.js";
 import { validateRequest } from "./../middleware/index.js";
 import { ProducerModel } from "./../models/index.js";
 import { log } from "console";
+import { UserModel } from "../../build/models/User.js";
 export const router = Router();
 
 const authvalidations = [isValidToken, protectRouteByRole([Role.Specialist])];
@@ -28,13 +29,22 @@ const createProducerValidations = [
 
     throw new Error("Invalid ci");
   }),
+  body("ci").custom(async (value) => {
+    const doc = await ProducerModel.findOne({ ci: value });
+    if (doc) {
+      console.log(doc);
+
+      throw new Error("ID duplicado");
+    }
+    return true;
+  }),
   body(["firstname", "surename"], "Invalid value")
     .exists({ values: "null" })
     .isString(),
   body(["secondname", "second_surename"], "Should be a string")
     .isString()
     .optional(),
-  body("cant_animals", "Should be an inetger number").isInt().optional(),
+  body("cant_animals", "Should be an integer number").isInt().optional(),
   body("months_contracts")
     .isArray({ min: 1, max: 12 })
     .withMessage("Array >1 <12")
